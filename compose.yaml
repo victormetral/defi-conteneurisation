@@ -1,0 +1,30 @@
+services:                                     # services : les conteneurs du projet
+  db:                                         # db (database, base de données) : nom du service = nom sur le réseau Docker
+    image: postgres:17                        # image officielle, version majeure épinglée
+    restart: unless-stopped                   # restart (redémarrer) : toujours, sauf arrêt manuel
+    environment:                              # environment (environnement) : variables données au conteneur
+      POSTGRES_DB: ${POSTGRES_DB}             # nom de la base
+      POSTGRES_USER: ${POSTGRES_USER}         # utilisateur
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # mot de passe
+    volumes:                                  # volumes : stockage qui survit au conteneur
+      - db-data:/var/lib/postgresql/data      # volume nommé : le dossier où PostgreSQL 17 range ses données
+    healthcheck:                              # healthcheck (contrôle de santé)
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]  # "es-tu prêt ?"
+      interval: 5s                            # interval (intervalle) : un test toutes les 5 secondes
+      timeout: 5s                             # timeout (délai maximal) d'un test
+      retries: 5                              # retries (nouvelles tentatives) avant l'état "unhealthy" (malade)
+
+  web:                                        # web : l'application Node (nom sur le réseau Docker)
+    build: .                                  # build (construire) : image construite avec le Dockerfile de ce dossier
+    image: defi-conteneurisation:1.0          # nom:tag (étiquette) donné à l'image construite
+    restart: unless-stopped                   # restart (redémarrer) : toujours, sauf arrêt manuel
+    ports:                                    # ports : ce qui est ouvert vers ton Mac
+      - "127.0.0.1:3000:3000"                 # IP:port_Mac:port_conteneur, seulement sur ton Mac
+    environment:                              # environment (environnement) : variables pour l'application
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}  # adresse de la base : hôte db, port 5432
+    depends_on:                               # depends_on (dépend de) : ordre de démarrage
+      db:                                     # attend le service db…
+        condition: service_healthy            # …jusqu'à ce qu'il soit en bonne santé
+
+volumes:                                      # déclaration des volumes nommés, à la racine du fichier
+  db-data:                                    # le volume des données PostgreSQL
