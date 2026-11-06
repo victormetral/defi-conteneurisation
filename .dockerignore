@@ -1,0 +1,6 @@
+# Liste blanche : tout est exclu par défaut…
+*
+# …sauf ce dont l'image a besoin
+!package.json
+!package-lock.json
+!src
